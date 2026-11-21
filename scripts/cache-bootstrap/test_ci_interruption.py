@@ -15,7 +15,13 @@ import time
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--handoff-only", action="store_true")
+    parser.add_argument("--completed-modules", type=int, default=1)
     args = parser.parse_args()
+    if not 1 <= args.completed_modules <= 32:
+        parser.error("completed modules must be between 1 and 32")
+    fast_names = ["Fast" if index == 0 else f"Fast{index}" for index in range(args.completed_modules)]
+    shared_names = ["SharedBase", "SharedLeft", "SharedRight"] if args.completed_modules > 1 else []
+    completed_names = [*shared_names, *fast_names]
     here = Path(__file__).resolve().parent
     spec = importlib.util.spec_from_file_location("ci_interrupt", here.parent / "ci-build.py")
     ci = importlib.util.module_from_spec(spec); spec.loader.exec_module(ci)
@@ -27,9 +33,17 @@ def main():
             (root / "src").mkdir(parents=True); packages.mkdir()
             (root / "lean-toolchain").write_text(ci.TOOLCHAIN + "\n")
             (root / "lakefile.toml").write_text('name="interruptFixture"\nsrcDir="src"\nplatformIndependent=true\ndefaultTargets=["Proof"]\n[[lean_lib]]\nname="Proof"\nglobs=["Fast", "Slow"]\n[[lean_lib]]\nname="Extras"\nroots=["Stale", "Corrupt"]\n')
+            config = root / "lakefile.toml"
+            config.write_text(config.read_text().replace('globs=["Fast", "Slow"]', "globs=" + json.dumps([*completed_names, "Slow"])))
             version = "1.2.0" if ci.TOOLCHAIN.endswith("v4.33.1") else "1.3.0"
             (root / "lake-manifest.json").write_text(json.dumps({"version": version, "packagesDir": ".lake/packages", "packages": []}))
-            (root / "src/Fast.lean").write_text("theorem completed : True := True.intro\n")
+            if shared_names:
+                (root / "src/SharedBase.lean").write_text("def sharedBase : Nat := 42\n")
+                (root / "src/SharedLeft.lean").write_text("import SharedBase\ntheorem sharedLeft : True := True.intro\n")
+                (root / "src/SharedRight.lean").write_text("import SharedBase\ntheorem sharedRight : True := True.intro\n")
+            for index, name in enumerate(fast_names):
+                theorem = "completed" if index == 0 else f"completed{index}"
+                (root / "src" / (name + ".lean")).write_text(("import SharedLeft\nimport SharedRight\n" if shared_names else "") + f"theorem {theorem} : True := True.intro\n")
             (root / "src/Slow.lean").write_text('import Lean\nimport Fast\nrun_elab do\n  IO.FS.writeFile "/work/result/slow-started" "yes"\n  IO.sleep 120000\ntheorem pending : True := completed\n')
             (root / "src/Stale.lean").write_text("def stale : Nat := 1\n")
             (root / "src/Corrupt.lean").write_text("def intact : Nat := 1\n")
@@ -47,7 +61,7 @@ def main():
             git("init", "-q"); git("add", "src", "lakefile.toml", "lean-toolchain", "lake-manifest.json")
             git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture")
             command = [sys.executable, str(here.parent / "ci-build.py"), "--candidate", str(root), "--packages", str(packages),
-                       "--output", str(output), "--work-dir", str(durable), "--jobs", "2", "--reserve-disk-gib", "0",
+                       "--output", str(output), "--work-dir", str(durable), "--jobs", str(max(2, args.completed_modules)), "--reserve-disk-gib", "0",
                        "--dependency-manifest-sha256", ci.sha256(root / "lake-manifest.json")]
             with (directory / "controller.log").open("wb") as log:
                 process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
@@ -56,7 +70,8 @@ def main():
                     deadline = time.monotonic() + 45
                     while time.monotonic() < deadline:
                         runs = list(durable.glob("run-*")) if durable.exists() else []
-                        if runs and (runs[0] / "result/slow-started").exists():
+                        if (runs and (runs[0] / "result/slow-started").exists() and
+                                all((runs[0] / "project/.lake/build/lib/lean" / (name + ".trace")).exists() for name in completed_names)):
                             break
                         if process.poll() is not None:
                             raise AssertionError((directory / "controller.log").read_text() + (output / "build.log").read_text())
@@ -91,12 +106,15 @@ def main():
                         work = adopted
                     fast = work / "project/.lake/build/lib/lean/Fast.olean"
                     assert fast.exists() and (fast.with_suffix(".trace")).exists()
-                    original, mtime = fast.read_bytes(), fast.stat().st_mtime_ns
-                    archive = work / "project/.lake/build/ir/Fast.ltar"
-                    if archive.exists():
-                        archive.unlink()
-                    if partial_pack:
-                        archive.write_bytes(b"truncated pack: arbitrary bytes have a valid hash but are not an LTAR")
+                    originals = {}
+                    for name in completed_names:
+                        path = work / "project/.lake/build/lib/lean" / (name + ".olean")
+                        originals[name] = (path.read_bytes(), path.stat().st_mtime_ns)
+                        archive = work / "project/.lake/build/ir" / (name + ".ltar")
+                        if archive.exists():
+                            archive.unlink()
+                        if partial_pack:
+                            archive.write_bytes(b"truncated pack: arbitrary bytes have a valid hash but are not an LTAR")
                     # Valid old LTAR/cache pairs must NOT override a rejected
                     # current-input check or a rejected raw-output hash check.
                     for relative, data in old_parts.items():
@@ -138,20 +156,22 @@ def main():
                         process.send_signal(signal.SIGINT)
                         code = process.wait(timeout=45)
                         assert code == 130, (code, (directory / "controller.log").read_text())
-                    assert fast.read_bytes() == original and fast.stat().st_mtime_ns == mtime
+                    for name in completed_names:
+                        path = work / "project/.lake/build/lib/lean" / (name + ".olean")
+                        assert (path.read_bytes(), path.stat().st_mtime_ns) == originals[name]
                     checkpoint = json.loads((work / "checkpoint.json").read_text())
                     assert checkpoint["state"] == "failed" and checkpoint["build_exit_code"] == actual_exit
                     receipt = json.loads((output / "receipt.json").read_text())
-                    assert receipt["build_exit_code"] == actual_exit and len(receipt["artifacts"]) == 1, (receipt, (work / "raw-recovery.log").read_text())
-                    assert len(ci.load_map(output / "outputs.jsonl")) == 1
+                    assert receipt["build_exit_code"] == actual_exit and len(receipt["artifacts"]) == len(completed_names), (receipt, (work / "raw-recovery.log").read_text())
+                    assert len(ci.load_map(output / "outputs.jsonl")) == len(completed_names)
                     decisions = {row["name"]: row["ok"] for row in map(json.loads, (work / "result/raw-recovery.jsonl").read_text().splitlines())}
-                    assert decisions == {"Fast": True, "Stale": False, "Corrupt": False}, decisions
+                    assert decisions == {**{name: True for name in completed_names}, "Stale": False, "Corrupt": False}, decisions
                     summary = json.loads((work / "raw-recovery-summary.json").read_text())
-                    assert summary["accepted"] == 1 and summary["stock_rejected"] == 2 and summary["unreported"] == 0
+                    assert summary["accepted"] == len(completed_names) and summary["stock_rejected"] == 2 and summary["unreported"] == 0
                     if handoff:
                         audit = json.loads((work / "handoff-audit.json").read_text())
                         assert audit["original_run_id"] == 42 and audit["build_exit_code"] == 137
-                        assert audit["mapped_modules"] == 1 and audit["original_controller_pid"] == process.pid
+                        assert audit["mapped_modules"] == len(completed_names) and audit["original_controller_pid"] == process.pid
                         assert list(work.glob("checkpoint-before-recovery-*.json"))
                     item = receipt["artifacts"][0]
                     assert (output / "artifacts" / item["file"]).read_bytes() != b"truncated pack: arbitrary bytes have a valid hash but are not an LTAR"

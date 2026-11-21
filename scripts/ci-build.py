@@ -667,7 +667,7 @@ def recover_completed_map(project, cache, toolchain, work, destination, known_ha
 
 
 def recover_raw_outputs(project, cache, work, control, command, prefix, environment, reserve_gib,
-                        known_mappings, existing):
+                        known_mappings, existing, workers=8):
     names = []
     summary = {"already_mapped": 0, "known_cache": 0, "missing_raw": 0}
     for name, module, dep_hash in module_traces(project, incomplete=True):
@@ -702,7 +702,7 @@ def recover_raw_outputs(project, cache, work, control, command, prefix, environm
     with (work / "raw-recovery.log").open("wb") as log:
         code = supervised_build(fresh_prefix + command + ["/opt/lean/bin/lean",
             "--load-dynlib=/opt/lean/lib/lean/libLake_shared.so", "--run", "/control/RecoverCompleted.lean",
-            "/work/project", "/control/raw-recovery-jobs.json", "/work/result/raw-recovery.jsonl", "/control/packages.json"],
+            "/work/project", "/control/raw-recovery-jobs.json", "/work/result/raw-recovery.jsonl", "/control/packages.json", str(min(workers, 32))],
             environment, log, (work,), reserve_gib)
     print(f"Stock no-build raw recovery processed {len(names)} candidate modules (exit {code}); raw work remains retained", flush=True)
     verified, seen, requested = {}, set(), set(names)
@@ -897,7 +897,7 @@ def main():
                     shutil.copyfile(mapping_file, work / "interrupted-outputs.jsonl")
                     mapping_file.unlink()
             verified = recover_raw_outputs(project, cache, work, control, command, resource_prefix, build_environment,
-                                           args.reserve_disk_gib, known_mappings, existing)
+                                           args.reserve_disk_gib, known_mappings, existing, workers=args.jobs)
             # Only actual stock -o successes and explicit current no-build
             # recovery successes are fresh partial completions. A rejected
             # stale/corrupt module must not reenter via an old LTAR/cache pair.
