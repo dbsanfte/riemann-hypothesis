@@ -40,12 +40,14 @@ jobs:
           cmp "$T/lean/lean-toolchain" lean-toolchain
           cmp "$T/lean/lake-manifest.json" lake-manifest.json
 
-          # Only the explicit cache prefix and marked Comparator suffix are additions.
+          # The original configuration registers one additional root in Main.
+          sed 's/^roots = \["Statements", "Main"\]$/roots = ["Statements", "Main", "PrincipalRH"]/' \
+            "$T/lean/lakefile.toml" > "$T/lakefile-with-principal-rh.toml"
           printf '# Cache infrastructure; the original submission starts below this block.\nplatformIndependent = true\n\n' > "$T/cache-prefix"
           head -n 3 lakefile.toml | cmp - "$T/cache-prefix"
           tail -n +4 lakefile.toml > "$T/lakefile-without-cache.toml"
-          n=$(wc -c < "$T/lean/lakefile.toml")
-          head -c "$n" "$T/lakefile-without-cache.toml" | cmp - "$T/lean/lakefile.toml"
+          n=$(wc -c < "$T/lakefile-with-principal-rh.toml")
+          head -c "$n" "$T/lakefile-without-cache.toml" | cmp - "$T/lakefile-with-principal-rh.toml"
           tail -c +"$((n + 1))" "$T/lakefile-without-cache.toml"
 
   challenge:

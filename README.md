@@ -17,7 +17,7 @@ declarations.
 | [`export-targets.txt`](export-targets.txt) | the declarations to export |
 | [`verification/`](verification/NOTES.md) | our notes, and the results once there are some |
 | [`scripts/`](scripts/) | public Lake cache configuration and reproducible bootstrap/publishing tools |
-| [`src/PrincipalRH.lean`](src/PrincipalRH.lean) | standalone ordinary-RH target |
+| [`src/PrincipalRH.lean`](src/PrincipalRH.lean) | the principal-character proof used by `Main` |
 
 ## Using the build cache
 
@@ -54,9 +54,9 @@ verification, follow the clean-build instructions below.
 | `LFunction_eq_zero_re` | every zero of L(χ, s) with 0 < Re s < 1 has Re s = 1/2 |
 | `LFunction_eq_zero_re_of_isPrimitive` | the same, for primitive characters |
 
-For ordinary RH alone, build `lake build PrincipalRH`. This target uses the principal-character
-arithmetic window and a common geometric family. It imports 165,070 modules from the original
-submission and 31 new modules. [Proof and verification notes](verification/PRINCIPAL-RH.md).
+The ordinary-RH proof in `Main` uses the principal-character arithmetic window and a common
+geometric family. Its proof module imports 165,070 modules from the original submission and
+uses 31 new modules. [Proof and verification notes](verification/PRINCIPAL-RH.md).
 
 ## Checking it
 

@@ -18,17 +18,13 @@ README, this folder, the CI workflow and, since
 `scripts/`. The [principal-character route](PRINCIPAL-RH.md) adds `src/PrincipalRH.lean` and
 `src/PrincipalRH/` and redirects the two ordinary-RH declarations in `src/Main.lean`.
 The manual mirror check downloads the archive and checks the original sources and the exact
-changes to `Main.lean`.
+changes to `Main.lean` and its Lake library roots.
 
-`lakefile.toml` is the original with two additions:
+`lakefile.toml` incorporates three changes to the original configuration.
 
-- three lines at the top, which set `platformIndependent = true` for the build cache;
-- a marked block at the end, which registers the `Challenge` and `PrincipalRH` libraries, the
-  `cache` executable and the cache server.
-
-CI checks that the original file sits unchanged between the two. Neither addition makes Lake
-treat an existing build as out of date; that was tested on a small Lean `v4.33.1` project, not
-on this one.
+- Three lines at the top set `platformIndependent = true` for the build cache.
+- The `Main` library roots include the `PrincipalRH` proof module.
+- A marked block at the end registers `Challenge`, the `cache` executable and the cache server.
 
 The build cache is described in [CACHE.md](CACHE.md). The steps in the README's "Checking it" do
 not use it.
@@ -87,10 +83,12 @@ A text search is not a proof. The axiom check and kernel replay in Comparator ar
 
 ## Statements
 
-`Main.lean` proves `riemannHypothesis` as `Formalism.VW.rh_of_every allChi`, where `allChi` says
-that no Dirichlet L-function vanishes for Re s > 1/2. The step from that to RH and to the
-critical-line statements (`Formalism/GammaFactorNonvanishing/CritLine.lean`) is the standard
-functional-equation argument, using Mathlib's lemmas.
+In the published archive, `Main.lean` proves `riemannHypothesis` as
+`Formalism.VW.rh_of_every allChi`, where `allChi` says that no Dirichlet L-function vanishes
+for Re s > 1/2. The step from that to RH and to the critical-line statements
+(`Formalism/GammaFactorNonvanishing/CritLine.lean`) is the standard functional-equation
+argument, using Mathlib's lemmas. The ordinary-RH declarations in this repository use
+the [principal-character route](PRINCIPAL-RH.md).
 
 The statements were read by hand:
 

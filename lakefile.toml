@@ -61,17 +61,14 @@ globs = ["Supplements.+"]
 
 [[lean_lib]]
 name = "Main"
-roots = ["Statements", "Main"]
+roots = ["Statements", "Main", "PrincipalRH"]
 # --- Everything below this line was added for Comparator; it is not part of the submission ---
-
-[[lean_lib]]
-name = "PrincipalRH"
 
 [[lean_lib]]
 name = "Challenge"
 roots = ["Challenge"]
 
-# Project cache entrypoint. The original submission above is unchanged.
+# Project cache entrypoint.
 [[lean_exe]]
 name = "cache"
 root = "scripts.Cache"

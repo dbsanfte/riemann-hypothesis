@@ -1,8 +1,9 @@
 # Ordinary RH via the principal character
 
-[`PrincipalRH.riemannHypothesis`](../src/PrincipalRH.lean) proves Mathlib’s
-`RiemannHypothesis` without hypotheses. It specializes Levent Alpöge’s proof to the principal
-character. The added modules come from [RiemannGaussian](https://github.com/dbsanfte/RiemannGaussian/tree/9628c023/scripts).
+The `riemannHypothesis` and `riemannZeta_eq_zero_re` declarations in `Main` use
+[`PrincipalRH.riemannHypothesis`](../src/PrincipalRH.lean) to prove ordinary RH without
+hypotheses. The proof specializes Levent Alpöge’s argument to the principal character.
+The added modules come from [RiemannGaussian](https://github.com/dbsanfte/RiemannGaussian/tree/9628c023/scripts).
 
 The proof constructs the height-401 arithmetic window for the principal character. One family
 of reciprocity-based bundles supplies the lift-rank bound and the weighted, irreducibility,
@@ -12,8 +13,9 @@ common period grid for that family.
 The `PrincipalRH` import closure contains 165,070 original source modules and 31 new modules,
 excluding Lean and Lake package dependencies. The previously verified principal-character
 route in RiemannGaussian used 175,174 original modules. The new route saves 10,104 original
-modules and omits the all-character assembly. The three Dirichlet L-function declarations
-in `Main` still use that assembly. [Earlier principal proof receipt](https://github.com/dbsanfte/RiemannGaussian/blob/9628c023/docs/research-evidence/alpoge-archive-principal-rh.json).
+modules and omits the all-character assembly. A full build of `Main` also builds the
+all-character assembly for its three Dirichlet L-function declarations.
+[Earlier principal proof receipt](https://github.com/dbsanfte/RiemannGaussian/blob/9628c023/docs/research-evidence/alpoge-archive-principal-rh.json).
 
 ## Verification
 
@@ -24,7 +26,7 @@ inside the solution sandbox described in the [README](../README.md#checking-it).
 export LEAN_ABORT_ON_PANIC=1
 export LAKE_ARTIFACT_CACHE=false
 lake exe mathlib/cache get
-lake build PrincipalRH
+lake build Main
 lake env lean --stdin <<'LEAN'
 import LeanChecker
 
