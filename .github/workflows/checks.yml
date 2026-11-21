@@ -14,7 +14,7 @@ permissions:
 jobs:
   mirror:
     if: github.event_name == 'workflow_dispatch'
-    name: Source is identical to the published tarball
+    name: Verify the published source against the tarball
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,9 +26,17 @@ jobs:
           echo "9631b4f020199e580ba86178cb56c6e9b09f690c2369a80dc4334aa93f49c7fc  $T/lean.tar.gz" | sha256sum -c
           tar xzf "$T/lean.tar.gz" -C "$T"
 
-          # src/ differs only by the added Challenge.lean
-          d=$(diff -r "$T/lean/src" src || true); echo "$d"
-          [ "$d" = "Only in src: Challenge.lean" ]
+          # Compare the archive after applying the two ordinary-RH aliases.
+          sed -e '/^import Statements$/a import PrincipalRH' \
+            -e '/^theorem riemannHypothesis : /s/rhOfAll$/PrincipalRH.riemannHypothesis/' \
+            -e '/^theorem riemannZeta_eq_zero_re : /s/rhOfAll$/PrincipalRH.riemannHypothesis/' \
+            "$T/lean/src/Main.lean" > "$T/Main.lean"
+          cmp "$T/Main.lean" src/Main.lean
+          cp "$T/Main.lean" "$T/lean/src/Main.lean"
+          d=$(diff -qr "$T/lean/src" src) || [ "$?" = 1 ]
+          expected=$(printf '%s\n' 'Only in src: Challenge.lean' 'Only in src: PrincipalRH' 'Only in src: PrincipalRH.lean')
+          printf '%s\n' "$d"
+          [ "$d" = "$expected" ]
           cmp "$T/lean/lean-toolchain" lean-toolchain
           cmp "$T/lean/lake-manifest.json" lake-manifest.json
 

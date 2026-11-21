@@ -15,14 +15,16 @@ The first commit of this repository, `40e56bab`, is the archive's `lean/` direct
 published. Later commits add `src/Challenge.lean`, `comparator.json`, `export-targets.txt`, the
 README, this folder, the CI workflow and, since
 [#7](https://github.com/leanprover-community/riemann-hypothesis/pull/7), the build cache in
-`scripts/`. Nothing else under `src/` is touched. `git diff 40e56bab HEAD --stat` shows this, and
-CI downloads the archive again and compares it with the tree.
+`scripts/`. The [principal-character route](PRINCIPAL-RH.md) adds `src/PrincipalRH.lean` and
+`src/PrincipalRH/` and redirects the two ordinary-RH declarations in `src/Main.lean`.
+The manual mirror check downloads the archive and checks the original sources and the exact
+changes to `Main.lean`.
 
 `lakefile.toml` is the original with two additions:
 
 - three lines at the top, which set `platformIndependent = true` for the build cache;
-- a marked block at the end, which registers the `Challenge` library, the `cache` executable and
-  the cache server.
+- a marked block at the end, which registers the `Challenge` and `PrincipalRH` libraries, the
+  `cache` executable and the cache server.
 
 CI checks that the original file sits unchanged between the two. Neither addition makes Lake
 treat an existing build as out of date; that was tested on a small Lean `v4.33.1` project, not
@@ -36,10 +38,11 @@ Check the joined sha256, not the status codes.
 
 ## Size
 
-175,187 `.lean` files and 1,030,531,854 bytes of source: 17,374,215 lines, of which 15,531,759
+The original submission has 175,187 `.lean` files and 1,030,531,854 bytes of source:
+17,374,215 lines, of which 15,531,759
 are non-blank. There are no comments. The source has 818,755 `theorem`/`lemma` declarations and
-242,067 `def`/`abbrev`/`structure`/`class`/`instance`/`inductive` declarations. Every file is in
-the import closure of `Main`.
+242,067 `def`/`abbrev`/`structure`/`class`/`instance`/`inductive` declarations. Every original
+file was in the import closure of the submitted `Main`.
 
 | Library | Files | Lines |
 |---|---:|---:|

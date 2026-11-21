@@ -65,6 +65,9 @@ roots = ["Statements", "Main"]
 # --- Everything below this line was added for Comparator; it is not part of the submission ---
 
 [[lean_lib]]
+name = "PrincipalRH"
+
+[[lean_lib]]
 name = "Challenge"
 roots = ["Challenge"]
 

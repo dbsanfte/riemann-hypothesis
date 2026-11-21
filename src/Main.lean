@@ -1,9 +1,10 @@
 import Statements
+import PrincipalRH
 import Supplements.Kernels.MainTheoremsAll
 
-theorem riemannHypothesis : RiemannHypothesis := rhOfAll
+theorem riemannHypothesis : RiemannHypothesis := PrincipalRH.riemannHypothesis
 
-theorem riemannZeta_eq_zero_re : RiemannZetaZerosOnLine := rhOfAll
+theorem riemannZeta_eq_zero_re : RiemannZetaZerosOnLine := PrincipalRH.riemannHypothesis
 
 theorem LFunction_ne_zero_of_half_lt_re : DirichletLNonvanishingRightOfHalf := allChi
 

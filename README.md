@@ -6,8 +6,9 @@ A [Comparator](https://github.com/leanprover/comparator) setup and community bui
 claims a proof of the Riemann Hypothesis, and of GRH for Dirichlet L-functions, announced on
 2026-11-20 at <https://alpo.ge/remark.pdf>.
 
-The submitted Lean source is unmodified. This repository adds Comparator files and cache
-infrastructure:
+This repository mirrors Alpöge's submission and adds Comparator files, cache infrastructure,
+and a shorter proof of ordinary RH. `Main.lean` uses the shorter route for its two ordinary-RH
+declarations.
 
 | File | What it is |
 |---|---|
@@ -16,6 +17,7 @@ infrastructure:
 | [`export-targets.txt`](export-targets.txt) | the declarations to export |
 | [`verification/`](verification/NOTES.md) | our notes, and the results once there are some |
 | [`scripts/`](scripts/) | public Lake cache configuration and reproducible bootstrap/publishing tools |
+| [`src/PrincipalRH.lean`](src/PrincipalRH.lean) | standalone ordinary-RH target |
 
 ## Using the build cache
 
@@ -51,6 +53,10 @@ verification, follow the clean-build instructions below.
 | `LFunction_ne_zero_of_half_lt_re` | L(χ, s) ≠ 0 for Re s > 1/2, for every modulus and every Dirichlet character, except the trivial character at s = 1 |
 | `LFunction_eq_zero_re` | every zero of L(χ, s) with 0 < Re s < 1 has Re s = 1/2 |
 | `LFunction_eq_zero_re_of_isPrimitive` | the same, for primitive characters |
+
+For ordinary RH alone, build `lake build PrincipalRH`. This target uses the principal-character
+arithmetic window and a common geometric family. It imports 165,070 modules from the original
+submission and 31 new modules. [Proof and verification notes](verification/PRINCIPAL-RH.md).
 
 ## Checking it
 
@@ -98,5 +104,5 @@ limits of what a passing run shows.
 
 ## License
 
-The submission belongs to its author and was published without a license. It is mirrored here
-unmodified, for verification only.
+The original submission belongs to its author and was published without a license. The
+`PrincipalRH` sources are available under the [Apache License 2.0](src/PrincipalRH/LICENSE).
